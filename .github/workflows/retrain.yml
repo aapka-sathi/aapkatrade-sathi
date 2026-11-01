@@ -1,0 +1,43 @@
+name: NiftyBot — Auto Retrain Brain (NSE-aware)
+
+on:
+  schedule:
+    # 4 times daily aligned with NSE sessions (Mon–Fri)
+    - cron: '45 3 * * 1-5'   # 09:15 IST (Pre-Open)
+    - cron: '0 6 * * 1-5'    # 11:30 IST (Mid-Session)
+    - cron: '15 9 * * 1-5'   # 14:45 IST (Pre-Close)
+    - cron: '15 10 * * 1-5'  # 15:45 IST (Post-Close Retrain)
+  workflow_dispatch:          # Allows manual trigger button
+
+jobs:
+  retrain-niftybot-brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Install AI Libraries
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🧠 Train NiftyBot BiLSTM Brain
+        run: |
+          python train_model.py
+
+      - name: 🚀 Push Updated Brain to GitHub
+        run: |
+          git config --global user.name "NiftyBot Cloud Trainer"
+          git config --global user.email "niftybot@github-actions.com"
+          git add trading_brain.tflite
+          git diff --cached --quiet || git commit -m "🧠 Auto-retrain: $(date -u '+%Y-%m-%d %H:%M UTC') NSE BiLSTM update"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
